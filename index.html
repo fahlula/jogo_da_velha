@@ -43,15 +43,18 @@
         #players {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         #players input {
-            padding: 6px 10px;
-            font-size: 14px;
-            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 16px;
+            border-radius: 8px;
             border: 2px solid #000;
-            background: rgba(255, 255, 255, .9);
+            background: rgba(255, 255, 255, .95);
             transition: box-shadow .2s;
+            min-width: 220px;
         }
 
         #players input.turn {
@@ -116,6 +119,7 @@
             justify-content: center;
         }
 
+        /* Botão único que troca de rótulo */
         #reset {
             background: #000;
             color: #fff;
@@ -131,6 +135,15 @@
         #reset:hover {
             background: #fff;
             color: #000;
+        }
+
+        #reset.again {
+            background: #10b981;
+            color: #fff;
+        }
+
+        #reset.again:hover {
+            filter: brightness(0.95);
         }
 
         .winline {
@@ -210,6 +223,16 @@
             outline: 3px solid #2563eb;
             outline-offset: 2px;
         }
+
+        /* Canvas dos confetes */
+        #confetti {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+        }
     </style>
 </head>
 
@@ -217,10 +240,12 @@
     <h1>Jogo da Velha</h1>
 
     <div id="players">
-        <input id="playerX" name="playerX" placeholder="Nome do Jogador X" autocomplete="off" autocapitalize="off"
-            spellcheck="false" />
-        <input id="playerO" name="playerO" placeholder="Nome do Jogador O" autocomplete="off" autocapitalize="off"
-            spellcheck="false" />
+        <input id="playerX" name="playerX" type="text" placeholder="Nome do Jogador X" autocomplete="off"
+            autocapitalize="off" autocorrect="off" inputmode="text" spellcheck="false" aria-label="Nome do Jogador X"
+            title="Nome do Jogador X" autofocus />
+        <input id="playerO" name="playerO" type="text" placeholder="Nome do Jogador O" autocomplete="off"
+            autocapitalize="off" autocorrect="off" inputmode="text" spellcheck="false" aria-label="Nome do Jogador O"
+            title="Nome do Jogador O" />
     </div>
 
     <div class="game-box">
@@ -259,6 +284,9 @@
         </div>
     </div>
 
+    <!-- Canvas para confetes -->
+    <canvas id="confetti"></canvas>
+
     <script>
         const statusEl = document.getElementById("status");
         const boardEl = document.getElementById("board");
@@ -266,6 +294,12 @@
         const inputX = document.getElementById("playerX");
         const inputO = document.getElementById("playerO");
         const cells = [...document.querySelectorAll(".cell")];
+
+        // Impede que cliques nos inputs "passeiem" para outros handlers
+        ;['click', 'mousedown', 'touchstart'].forEach(ev => {
+            inputX.addEventListener(ev, e => e.stopPropagation());
+            inputO.addEventListener(ev, e => e.stopPropagation());
+        });
 
         let board = Array(9).fill("");
         let current = "X";
@@ -299,22 +333,30 @@
         function render() {
             cells.forEach((btn, i) => {
                 const v = board[i];
-                btn.textContent = (v === "X" || v === "O") ? v : "";
-                btn.classList.toggle("x", v === "X");
-                btn.classList.toggle("o", v === "O");
+                btn.textContent = (v === 'X' || v === 'O') ? v : '';
+                btn.classList.toggle('x', v === 'X');
+                btn.classList.toggle('o', v === 'O');
                 const disabled = done || !!v;
                 btn.disabled = disabled;
                 btn.setAttribute('aria-disabled', String(disabled));
                 btn.setAttribute('aria-label', `célula ${i + 1}${v ? `, ${v}` : ''}`);
             });
-            inputX.classList.toggle('turn', current === "X" && !done);
-            inputO.classList.toggle('turn', current === "O" && !done);
+            inputX.classList.toggle('turn', current === 'X' && !done);
+            inputO.classList.toggle('turn', current === 'O' && !done);
 
             drawWinLine(winLine);
             if (done) {
-                if (winLine.length) setStatus(`🎉 Vitória de ${getName(board[winLine[0]])}!`);
-                else setStatus("🤝 Empate!");
-            } else setStatus(`Vez de ${getName(current)}`);
+                resetBtn.textContent = 'Jogar novamente';
+                resetBtn.classList.add('again');
+                if (winLine.length) {
+                    const winner = board[winLine[0]];
+                    setStatus(`🎉 Jogador ${getName(winner)} ganhou a partida!`);
+                } else setStatus("🤝 Empate!");
+            } else {
+                resetBtn.textContent = 'Reiniciar';
+                resetBtn.classList.remove('again');
+                setStatus(`Vez de ${getName(current)}`);
+            }
         }
 
         function play(pos) {
@@ -327,13 +369,26 @@
             }
             board[i] = current;
             winLine = checkWin();
-            if (winLine.length) { done = true; return render(); }
-            if (board.every(v => v)) { done = true; return render(); }
-            current = (current === "X") ? "O" : "X";
+            if (winLine.length) {
+                done = true;
+                render();
+                startConfetti(); // 🎊 dispara confetes quando alguém ganha
+                return;
+            }
+            if (board.every(v => v)) { done = true; render(); return; }
+            current = (current === 'X') ? 'O' : 'X';
             render();
         }
 
-        function reset() { document.querySelector(".winline")?.remove(); board.fill(""); current = "X"; done = false; winLine = []; render(); }
+        function reset() {
+            document.querySelector(".winline")?.remove();
+            board.fill(""); current = 'X'; done = false; winLine = [];
+            stopConfetti();
+            render();
+            // volta o foco pro primeiro campo pra facilitar digitar nomes
+            inputX.focus({ preventScroll: true });
+            inputX.select();
+        }
 
         // Delegação de clique: um listener só
         boardEl.addEventListener("click", (e) => {
@@ -342,6 +397,7 @@
         });
         resetBtn.addEventListener("click", reset);
 
+        // Atualiza nomes em tempo real
         inputX.addEventListener("input", render);
         inputO.addEventListener("input", render);
 
@@ -367,11 +423,10 @@
         });
 
         function shareText() {
-            if (done) return winLine.length ? `Vitória de ${getName(board[winLine[0]])}!` : "Empate!";
+            if (done) return winLine.length ? `Jogador ${getName(board[winLine[0]])} ganhou a partida!` : "Empate!";
             return `Agora é a vez de ${getName(current)}.`;
         }
 
-        // Abre direto a URL; se for bloqueado, faz fallback na mesma aba
         function openShare(url) {
             const w = window.open(url, "_blank", "width=600,height=600,menubar=no,toolbar=no");
             if (!w) { window.location.href = url; }
@@ -383,9 +438,8 @@
             const text = shareText(), link = location.href;
             let url = "";
             if (net === "native" && navigator.share) {
-                navigator.share({ title: "Jogo da Velha", text: url ? undefined : text, url: link }).catch(() => { /* usuário cancelou */ });
-                toggleShare(false);
-                return;
+                navigator.share({ title: "Jogo da Velha", text: url ? undefined : text, url: link }).catch(() => { });
+                toggleShare(false); return;
             } else if (net === "whatsapp") {
                 url = "https://wa.me/?text=" + encodeURIComponent(text + " " + link);
             } else if (net === "twitter") {
@@ -402,8 +456,65 @@
         /* ======== Inicialização ======== */
         try { localStorage.removeItem('jvelha:names'); } catch { }
         inputX.value = ""; inputO.value = "";
-        cells[0].focus();
+        inputX.focus({ preventScroll: true });
         render();
+
+        /* ======== Confetes (Canvas) ======== */
+        const confettiCanvas = document.getElementById('confetti');
+        const ctx = confettiCanvas.getContext('2d');
+        let particles = []; let rafId = null; let confettiRunning = false; let confettiUntil = 0;
+
+        function resizeCanvas() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createParticles(count = 180) {
+            const colors = ['#E74C3C', '#F1C40F', '#2ECC71', '#3498DB', '#9B59B6', '#FF8C00'];
+            particles = Array.from({ length: count }, () => ({
+                x: Math.random() * confettiCanvas.width,
+                y: -20 - Math.random() * confettiCanvas.height * 0.3,
+                r: 4 + Math.random() * 6,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                vx: (-0.5 + Math.random()) * 3,
+                vy: 2 + Math.random() * 3,
+                rot: Math.random() * Math.PI,
+                vr: (-0.5 + Math.random()) * 0.2,
+                shape: Math.random() < 0.5 ? 'rect' : 'circle'
+            }));
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            for (const p of particles) {
+                p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vy += 0.02; // gravidade leve
+                ctx.save();
+                ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+                ctx.fillStyle = p.color;
+                if (p.shape === 'rect') { ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); }
+                else { ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI * 2); ctx.fill(); }
+                ctx.restore();
+                if (p.y - p.r > confettiCanvas.height + 50) { p.y = -20; p.vy = 2 + Math.random() * 3; }
+            }
+            if (Date.now() < confettiUntil) { rafId = requestAnimationFrame(draw); }
+            else { confettiRunning = false; ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
+        }
+
+        function startConfetti(durationMs = 3000) {
+            if (confettiRunning) { confettiUntil = Date.now() + durationMs; return; }
+            createParticles();
+            confettiUntil = Date.now() + durationMs;
+            confettiRunning = true;
+            draw();
+        }
+        function stopConfetti() {
+            confettiUntil = 0;
+            if (rafId) cancelAnimationFrame(rafId);
+            confettiRunning = false;
+            ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
     </script>
 
     <footer>
