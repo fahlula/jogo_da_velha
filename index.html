@@ -100,6 +100,17 @@
             background: #fff;
             color: #000;
         }
+
+        .winline {
+            position: absolute;
+            height: 6px;
+            background: red;
+            border-radius: 6px;
+            left: 0;
+            top: 0;
+            transform-origin: center;
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -135,10 +146,40 @@
         let board = Array(9).fill("");
         let current = "X";
         let done = false;
+        let winLine = [];
 
         function setStatus(text, color = "inherit") {
             statusEl.textContent = text;
             statusEl.style.color = color;
+        }
+
+        const WINS = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+        function checkWin() {
+            for (const [a, b, c] of WINS) {
+                if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c];
+            }
+            return [];
+        }
+
+        const CELL = 100, GAP = 8;
+        function drawWinLine(line) {
+            document.querySelector(".winline")?.remove();
+            if (!line.length) return;
+            const [a, c] = [line[0], line[2]];
+            const r1 = Math.floor(a / 3), c1 = a % 3, r3 = Math.floor(c / 3), c3 = c % 3;
+            const cx1 = c1 * (CELL + GAP) + CELL / 2, cy1 = r1 * (CELL + GAP) + CELL / 2;
+            const cx3 = c3 * (CELL + GAP) + CELL / 2, cy3 = r3 * (CELL + GAP) + CELL / 2;
+            const dx = cx3 - cx1, dy = cy3 - cy1, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
+            const mx = (cx1 + cx3) / 2, my = (cy1 + cy3) / 2;
+            const el = document.createElement("div");
+            el.className = "winline";
+            el.style.width = `${len}px`; el.style.left = `${mx}px`; el.style.top = `${my}px`;
+            el.style.transform = `translate(-50%,-50%) rotate(${ang}rad)`;
+            boardEl.appendChild(el);
         }
 
         function render() {
@@ -149,8 +190,10 @@
                 btn.classList.toggle("o", v === "O");
                 btn.disabled = done || !!v;
             });
+            drawWinLine(winLine);
             if (done) {
-                setStatus("Fim de jogo");
+                if (winLine.length) setStatus(`🎉 Vitória de ${board[winLine[0]]}!`);
+                else setStatus("🤝 Empate!");
             } else {
                 setStatus(`Vez de ${current}`);
             }
@@ -165,7 +208,9 @@
                 return;
             }
             board[i] = current;
-            // vitória/empate ainda não implementados neste commit
+            winLine = checkWin();
+            if (winLine.length) { done = true; return render(); }
+            if (board.every(v => v)) { done = true; return render(); }
             current = (current === "X") ? "O" : "X";
             render();
         }
@@ -174,6 +219,7 @@
             board.fill("");
             current = "X";
             done = false;
+            winLine = [];
             render();
         }
 
