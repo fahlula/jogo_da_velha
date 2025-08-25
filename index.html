@@ -5,10 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jogo da Velha (JS com menu de compartilhamento)</title>
-
-    <!-- Font Awesome (ícones oficiais das redes sociais) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <style>
         :root {
             --footer-h: 56px;
@@ -142,7 +139,6 @@
             pointer-events: none;
         }
 
-        /* Botão principal de compartilhar */
         .share-wrapper {
             position: relative;
         }
@@ -156,7 +152,6 @@
             font-weight: 600;
         }
 
-        /* Dropdown escondido até abrir */
         .share-menu {
             position: absolute;
             top: 110%;
@@ -202,7 +197,6 @@
             font-weight: 600;
         }
 
-        /* Foco visível para teclado */
         .cell:focus-visible,
         #share-main:focus-visible,
         .share-menu button:focus-visible,
@@ -216,7 +210,6 @@
 
 <body>
     <h1>Jogo da Velha</h1>
-
     <div id="players">
         <input id="playerX" placeholder="Nome do Jogador X" />
         <input id="playerO" placeholder="Nome do Jogador O" />
@@ -252,7 +245,6 @@
     </div>
 
     <script>
-        /* ======== Lógica do jogo ======== */
         const statusEl = document.getElementById("status");
         const boardEl = document.getElementById("board");
         const resetBtn = document.getElementById("reset");
@@ -265,7 +257,7 @@
         let done = false;
         let winLine = [];
 
-        const CELL = 100, GAP = 8; // mantidos fixos
+        const CELL = 100, GAP = 8;
         const getName = (p) => (p === "X" ? inputX.value.trim() : inputO.value.trim()) || (p === "X" ? "Jogador X" : "Jogador O");
 
         function setStatus(text, color = "inherit") { statusEl.textContent = text; statusEl.style.color = color; }
@@ -328,28 +320,19 @@
         inputX.addEventListener("input", render);
         inputO.addEventListener("input", render);
 
-        // Navegação por teclado no grid: setas + enter/espaço
+        // Navegação por teclado
         cells[0].focus();
         boardEl.addEventListener('keydown', (e) => {
             const idx = cells.indexOf(document.activeElement);
             if (idx === -1) return;
             const row = Math.floor(idx / 3), col = idx % 3;
-            const map = {
-                ArrowRight: [row, col + 1],
-                ArrowLeft: [row, col - 1],
-                ArrowDown: [row + 1, col],
-                ArrowUp: [row - 1, col]
-            };
+            const map = { ArrowRight: [row, col + 1], ArrowLeft: [row, col - 1], ArrowDown: [row + 1, col], ArrowUp: [row - 1, col] };
             if (map[e.key]) {
                 e.preventDefault();
                 const [r, c] = map[e.key];
                 if (r >= 0 && r < 3 && c >= 0 && c < 3) cells[r * 3 + c].focus();
             }
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const btn = cells[idx];
-                btn.click();
-            }
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cells[idx].click(); }
         });
 
         /* ======== Compartilhar ======== */
@@ -365,8 +348,11 @@
         }
         function popup(url) { window.open(url, "_blank", "width=600,height=400"); }
 
+        // FIX: usar closest para captar o botão com data-net
         shareMenu.addEventListener("click", (e) => {
-            const net = e.target.dataset.net; if (!net) return;
+            const btn = e.target.closest("button[data-net]");
+            if (!btn) return;
+            const net = btn.dataset.net;
             const text = shareText(), link = location.href;
             if (net === "native" && navigator.share) {
                 navigator.share({ title: "Jogo da Velha", text, url: link });
@@ -381,7 +367,7 @@
             }
         });
 
-        render(); // inicia o jogo
+        render();
     </script>
 
     <footer>
