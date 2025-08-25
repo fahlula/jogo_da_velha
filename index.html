@@ -2,66 +2,186 @@
 <html lang="pt-br">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jogo da Velha</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jogo da Velha</title>
 
-  <style>
-    html, body { height: 100%; }
-    body {
-      font-family: system-ui, Arial, sans-serif;
-      min-height: 100vh; margin: 0;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;
-      padding: 24px;
-      background: #f5f5f5;
-    }
-    h1 { margin: 0; }
-    .game-box {
-      border: 2px solid #000; border-radius: 12px; padding: 16px 20px;
-      background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.1);
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
-    }
-    #status { min-height: 24px; font-weight: 600; }
-    #board { display: grid; grid-template-columns: repeat(3, 100px); gap: 8px; position: relative; }
-    .cell {
-      width: 100px; height: 100px; font-size: 28px; font-weight: 700;
-      background: #eee; border: 3px solid #000; border-radius: 8px; cursor: pointer;
-    }
-    .cell:disabled { opacity:.5; cursor: not-allowed; }
-    #actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-    #reset {
-      background:#000; color:#fff; border:2px solid #000; padding:10px 20px;
-      font-size:16px; font-weight:700; border-radius:6px; cursor:pointer; transition:.2s;
-    }
-    #reset:hover { background:#fff; color:#000; }
-  </style>
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding: 24px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .game-box {
+            border: 2px solid #000;
+            border-radius: 12px;
+            padding: 16px 20px;
+            background: #fff;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        #status {
+            min-height: 24px;
+            font-weight: 600;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 8px;
+            position: relative;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            font-size: 28px;
+            font-weight: 700;
+            background: #eee;
+            border: 3px solid #000;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .cell:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .x {
+            color: #4B0082;
+        }
+
+        .o {
+            color: #8B0000;
+        }
+
+        #actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #reset {
+            background: #000;
+            color: #fff;
+            border: 2px solid #000;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        #reset:hover {
+            background: #fff;
+            color: #000;
+        }
+    </style>
 </head>
 
 <body>
-  <h1>Jogo da Velha</h1>
+    <h1>Jogo da Velha</h1>
 
-  <div class="game-box">
-    <div id="status">Preparando o jogo…</div>
+    <div class="game-box">
+        <div id="status">Preparando o jogo…</div>
 
-    <div id="board" aria-label="Tabuleiro">
-      <button class="cell" data-pos="1"></button>
-      <button class="cell" data-pos="2"></button>
-      <button class="cell" data-pos="3"></button>
-      <button class="cell" data-pos="4"></button>
-      <button class="cell" data-pos="5"></button>
-      <button class="cell" data-pos="6"></button>
-      <button class="cell" data-pos="7"></button>
-      <button class="cell" data-pos="8"></button>
-      <button class="cell" data-pos="9"></button>
+        <div id="board" aria-label="Tabuleiro">
+            <button class="cell" data-pos="1"></button>
+            <button class="cell" data-pos="2"></button>
+            <button class="cell" data-pos="3"></button>
+            <button class="cell" data-pos="4"></button>
+            <button class="cell" data-pos="5"></button>
+            <button class="cell" data-pos="6"></button>
+            <button class="cell" data-pos="7"></button>
+            <button class="cell" data-pos="8"></button>
+            <button class="cell" data-pos="9"></button>
+        </div>
+
+        <div id="actions">
+            <button id="reset">Reiniciar</button>
+        </div>
     </div>
 
-    <div id="actions">
-      <button id="reset">Reiniciar</button>
-    </div>
-  </div>
+    <script>
+        const statusEl = document.getElementById("status");
+        const boardEl = document.getElementById("board");
+        const resetBtn = document.getElementById("reset");
+        const cells = [...document.querySelectorAll(".cell")];
 
-  <script>
-    /* Próximos commits trarão a lógica */
-  </script>
+        let board = Array(9).fill("");
+        let current = "X";
+        let done = false;
+
+        function setStatus(text, color = "inherit") {
+            statusEl.textContent = text;
+            statusEl.style.color = color;
+        }
+
+        function render() {
+            cells.forEach((btn, i) => {
+                const v = board[i];
+                btn.textContent = (v === "X" || v === "O") ? v : "";
+                btn.classList.toggle("x", v === "X");
+                btn.classList.toggle("o", v === "O");
+                btn.disabled = done || !!v;
+            });
+            if (done) {
+                setStatus("Fim de jogo");
+            } else {
+                setStatus(`Vez de ${current}`);
+            }
+        }
+
+        function play(pos) {
+            if (done) return;
+            const i = pos - 1;
+            if (board[i]) {
+                setStatus("Posição ocupada.", "#b45309");
+                setTimeout(() => { if (!done) setStatus(`Vez de ${current}`) }, 800);
+                return;
+            }
+            board[i] = current;
+            // vitória/empate ainda não implementados neste commit
+            current = (current === "X") ? "O" : "X";
+            render();
+        }
+
+        function reset() {
+            board.fill("");
+            current = "X";
+            done = false;
+            render();
+        }
+
+        cells.forEach(btn => btn.addEventListener("click", () => play(Number(btn.dataset.pos))));
+        resetBtn.addEventListener("click", reset);
+
+        render();
+    </script>
 </body>
+
 </html>
