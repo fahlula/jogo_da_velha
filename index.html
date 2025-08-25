@@ -4,9 +4,16 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jogo da Velha</title>
+    <title>Jogo da Velha (JS com menu de compartilhamento)</title>
+
+    <!-- Font Awesome (ícones oficiais das redes sociais) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
+        :root {
+            --footer-h: 56px;
+        }
+
         html,
         body {
             height: 100%;
@@ -22,14 +29,17 @@
             align-items: center;
             gap: 16px;
             padding: 24px;
-            background: #f5f5f5;
+            padding-bottom: var(--footer-h);
+            background-image: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80");
+            background-size: cover;
+            background-position: center;
         }
 
         h1 {
             border: 3px solid #000;
             border-radius: 8px;
             padding: 10px;
-            background: rgba(255, 255, 255, .9);
+            background: rgba(255, 255, 255, .65);
             margin: 0;
         }
 
@@ -43,15 +53,15 @@
             font-size: 14px;
             border-radius: 6px;
             border: 2px solid #000;
-            background: rgba(255, 255, 255, .95);
+            background: rgba(255, 255, 255, .9);
         }
 
         .game-box {
-            border: 2px solid #000;
+            border: 3px solid #000;
             border-radius: 12px;
             padding: 16px 20px;
-            background: #fff;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, .1);
+            background: rgba(255, 255, 255, .65);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -131,6 +141,66 @@
             transform-origin: center;
             pointer-events: none;
         }
+
+        /* Botão principal de compartilhar */
+        .share-wrapper {
+            position: relative;
+        }
+
+        #share-main {
+            background: #fff;
+            border: 2px solid #000;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Dropdown escondido até abrir */
+        .share-menu {
+            position: absolute;
+            top: 110%;
+            left: 0;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            min-width: 200px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+        }
+
+        .share-menu button {
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .share-menu button:hover {
+            background: #f0f0f0;
+        }
+
+        footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: var(--footer-h);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .75);
+            color: #fff;
+            border-top: 2px solid #000;
+            font-size: 14px;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -144,7 +214,6 @@
 
     <div class="game-box">
         <div id="status">Preparando o jogo…</div>
-
         <div id="board" aria-label="Tabuleiro">
             <button class="cell" data-pos="1"></button>
             <button class="cell" data-pos="2"></button>
@@ -158,17 +227,28 @@
         </div>
 
         <div id="actions">
-            <button id="reset">Reiniciar</button>
+            <button id="reset">Reiniciar</button> <!-- Wrapper do botão Compartilhar -->
+            <div class="share-wrapper">
+                <button id="share-main"><i class="fas fa-share-alt"></i> Compartilhar</button>
+                <div class="share-menu" id="share-menu">
+                    <button data-net="native"><i class="fas fa-share-nodes"></i> Compartilhar (nativo)</button>
+                    <button data-net="whatsapp"><i class="fab fa-whatsapp" style="color:#25D366"></i> WhatsApp</button>
+                    <button data-net="twitter"><i class="fab fa-x-twitter" style="color:#000"></i> Twitter/X</button>
+                    <button data-net="facebook"><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook</button>
+                    <button data-net="linkedin"><i class="fab fa-linkedin" style="color:#0A66C2"></i> LinkedIn</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        /* ======== Lógica do jogo ======== */
         const statusEl = document.getElementById("status");
         const boardEl = document.getElementById("board");
         const resetBtn = document.getElementById("reset");
-        const cells = [...document.querySelectorAll(".cell")];
         const inputX = document.getElementById("playerX");
         const inputO = document.getElementById("playerO");
+        const cells = [...document.querySelectorAll(".cell")];
 
         let board = Array(9).fill("");
         let current = "X";
@@ -178,18 +258,10 @@
         const CELL = 100, GAP = 8;
         const getName = (p) => (p === "X" ? inputX.value.trim() : inputO.value.trim()) || (p === "X" ? "Jogador X" : "Jogador O");
 
-        function setStatus(text, color = "inherit") {
-            statusEl.textContent = text;
-            statusEl.style.color = color;
-        }
+        function setStatus(text, color = "inherit") { statusEl.textContent = text; statusEl.style.color = color; }
 
         const WINS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
-        function checkWin() {
-            for (const [a, b, c] of WINS) {
-                if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c];
-            }
-            return [];
-        }
+        function checkWin() { for (const [a, b, c] of WINS) { if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c]; } return []; }
 
         function drawWinLine(line) {
             document.querySelector(".winline")?.remove();
@@ -219,9 +291,7 @@
             if (done) {
                 if (winLine.length) setStatus(`🎉 Vitória de ${getName(board[winLine[0]])}!`);
                 else setStatus("🤝 Empate!");
-            } else {
-                setStatus(`Vez de ${getName(current)}`);
-            }
+            } else setStatus(`Vez de ${getName(current)}`);
         }
 
         function play(pos) {
@@ -240,21 +310,48 @@
             render();
         }
 
-        function reset() {
-            board.fill("");
-            current = "X";
-            done = false;
-            winLine = [];
-            render();
-        }
+        function reset() { board.fill(""); current = "X"; done = false; winLine = []; render(); }
 
         cells.forEach(btn => btn.addEventListener("click", () => play(Number(btn.dataset.pos))));
         resetBtn.addEventListener("click", reset);
         inputX.addEventListener("input", render);
         inputO.addEventListener("input", render);
 
-        render();
+        /* ======== Compartilhar ======== */
+        const shareBtn = document.getElementById("share-main");
+        const shareMenu = document.getElementById("share-menu");
+
+        shareBtn.addEventListener("click", () => shareMenu.style.display = (shareMenu.style.display === "flex" ? "none" : "flex"));
+        document.addEventListener("click", (e) => { if (!e.target.closest(".share-wrapper")) shareMenu.style.display = "none"; });
+
+        function shareText() {
+            if (done) return winLine.length ? `Vitória de ${getName(board[winLine[0]])}!` : "Empate!";
+            return `Agora é a vez de ${getName(current)}.`;
+        }
+        function popup(url) { window.open(url, "_blank", "width=600,height=400"); }
+
+        shareMenu.addEventListener("click", (e) => {
+            const net = e.target.dataset.net; if (!net) return;
+            const text = shareText(), link = location.href;
+            if (net === "native" && navigator.share) {
+                navigator.share({ title: "Jogo da Velha", text, url: link });
+            } else if (net === "whatsapp") {
+                popup("https://wa.me/?text=" + encodeURIComponent(text + " " + link));
+            } else if (net === "twitter") {
+                popup("https://twitter.com/intent/tweet?text=" + encodeURIComponent(text + " " + link));
+            } else if (net === "facebook") {
+                popup("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(link));
+            } else if (net === "linkedin") {
+                popup("https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent(link));
+            }
+        });
+
+        render(); // inicia o jogo
     </script>
+
+    <footer>
+        <p>&copy; JogoDaVelha. Todos os direitos reservados.</p>
+    </footer>
 </body>
 
 </html>
