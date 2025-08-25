@@ -215,9 +215,13 @@
 
 <body>
     <h1>Jogo da Velha</h1>
+
     <div id="players">
-        <input id="playerX" placeholder="Nome do Jogador X" />
-        <input id="playerO" placeholder="Nome do Jogador O" />
+        <!-- Desativa autocomplete para evitar re-preenchimento do navegador -->
+        <input id="playerX" name="playerX" placeholder="Nome do Jogador X" autocomplete="off" autocapitalize="off"
+            spellcheck="false" />
+        <input id="playerO" name="playerO" placeholder="Nome do Jogador O" autocomplete="off" autocapitalize="off"
+            spellcheck="false" />
     </div>
 
     <div class="game-box">
@@ -286,28 +290,17 @@
             boardEl.appendChild(el);
         }
 
-        const LS_KEY = 'jvelha:names';
-        function loadNames() {
-            try {
-                const n = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-                if (n.x) inputX.value = n.x;
-                if (n.o) inputO.value = n.o;
-            } catch { }
-        }
-        function saveNames() {
-            localStorage.setItem(LS_KEY, JSON.stringify({ x: inputX.value, o: inputO.value }));
-        }
-
         function render() {
             cells.forEach((btn, i) => {
                 const v = board[i];
                 btn.textContent = (v === "X" || v === "O") ? v : "";
                 btn.classList.toggle("x", v === "X");
                 btn.classList.toggle("o", v === "O");
-                btn.disabled = done || !!v;
+                const disabled = done || !!v;
+                btn.disabled = disabled;
+                btn.setAttribute('aria-disabled', String(disabled));
                 btn.setAttribute('aria-label', `célula ${i + 1}${v ? `, ${v}` : ''}`);
             });
-            // destaque de turno
             inputX.classList.toggle('turn', current === "X" && !done);
             inputO.classList.toggle('turn', current === "O" && !done);
 
@@ -334,28 +327,18 @@
             render();
         }
 
-        function reset() { board.fill(""); current = "X"; done = false; winLine = []; render(); }
+        function reset() { document.querySelector(".winline")?.remove(); board.fill(""); current = "X"; done = false; winLine = []; render(); }
 
-        cells.forEach(btn => btn.addEventListener("click", () => play(Number(btn.dataset.pos))));
-        resetBtn.addEventListener("click", reset);
-        inputX.addEventListener("input", () => { saveNames(); render(); });
-        inputO.addEventListener("input", () => { saveNames(); render(); });
-
-        // Navegação por teclado
-        loadNames();
-        cells[0].focus();
-        boardEl.addEventListener('keydown', (e) => {
-            const idx = cells.indexOf(document.activeElement);
-            if (idx === -1) return;
-            const row = Math.floor(idx / 3), col = idx % 3;
-            const map = { ArrowRight: [row, col + 1], ArrowLeft: [row, col - 1], ArrowDown: [row + 1, col], ArrowUp: [row - 1, col] };
-            if (map[e.key]) {
-                e.preventDefault();
-                const [r, c] = map[e.key];
-                if (r >= 0 && r < 3 && c >= 0 && c < 3) cells[r * 3 + c].focus();
-            }
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cells[idx].click(); }
+        // Delegação de clique: um listener só
+        boardEl.addEventListener("click", (e) => {
+            const btn = e.target.closest(".cell"); if (!btn || !boardEl.contains(btn)) return;
+            play(Number(btn.dataset.pos));
         });
+        resetBtn.addEventListener("click", reset);
+
+        // Apenas re-render (sem salvar nomes)
+        inputX.addEventListener("input", render);
+        inputO.addEventListener("input", render);
 
         /* ======== Compartilhar ======== */
         const shareBtn = document.getElementById("share-main");
@@ -368,33 +351,15 @@
             if (done) return winLine.length ? `Vitória de ${getName(board[winLine[0]])}!` : "Empate!";
             return `Agora é a vez de ${getName(current)}.`;
         }
-
-        function popup(url) {
-            const w = window.open('', '_blank', 'noopener,noreferrer,width=600,height=400');
-            if (w) w.location = url;
-        }
-
-        async function copyLink(text, link) {
-            try {
-                await navigator.clipboard.writeText(`${text} ${link}`);
-                setStatus("Link copiado para a área de transferência! ✅", "#065f46");
-            } catch {
-                setStatus("Não foi possível copiar o link.", "#b91c1c");
-            }
-        }
+        function popup(url) { const w = window.open('', '_blank', 'noopener,noreferrer,width=600,height=400'); if (w) w.location = url; }
 
         shareMenu.addEventListener("click", (e) => {
-            const btn = e.target.closest("button[data-net]");
-            if (!btn) return;
+            const btn = e.target.closest("button[data-net]"); if (!btn) return;
             const net = btn.dataset.net;
             const text = shareText(), link = location.href;
 
             if (net === "native") {
-                if (navigator.share) {
-                    navigator.share({ title: "Jogo da Velha", text, url: link });
-                } else {
-                    copyLink(text, link);
-                }
+                if (navigator.share) { navigator.share({ title: "Jogo da Velha", text, url: link }); }
             } else if (net === "whatsapp") {
                 popup("https://wa.me/?text=" + encodeURIComponent(text + " " + link));
             } else if (net === "twitter") {
@@ -406,6 +371,13 @@
             }
         });
 
+        /* ======== Inicialização ======== */
+        // Limpa qualquer dado antigo salvo por versões anteriores
+        try { localStorage.removeItem('jvelha:names'); } catch { }
+        // Garante inputs vazios ao abrir
+        inputX.value = ""; inputO.value = "";
+        // Foco inicial e primeira renderização
+        cells[0].focus();
         render();
     </script>
 
