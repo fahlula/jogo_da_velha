@@ -26,7 +26,24 @@
         }
 
         h1 {
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 10px;
+            background: rgba(255, 255, 255, .9);
             margin: 0;
+        }
+
+        #players {
+            display: flex;
+            gap: 12px;
+        }
+
+        #players input {
+            padding: 6px 10px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 2px solid #000;
+            background: rgba(255, 255, 255, .95);
         }
 
         .game-box {
@@ -44,6 +61,9 @@
         #status {
             min-height: 24px;
             font-weight: 600;
+            background: rgba(255, 255, 255, .85);
+            padding: 6px 10px;
+            border-radius: 8px;
         }
 
         #board {
@@ -117,6 +137,11 @@
 <body>
     <h1>Jogo da Velha</h1>
 
+    <div id="players">
+        <input id="playerX" placeholder="Nome do Jogador X" />
+        <input id="playerO" placeholder="Nome do Jogador O" />
+    </div>
+
     <div class="game-box">
         <div id="status">Preparando o jogo…</div>
 
@@ -142,22 +167,23 @@
         const boardEl = document.getElementById("board");
         const resetBtn = document.getElementById("reset");
         const cells = [...document.querySelectorAll(".cell")];
+        const inputX = document.getElementById("playerX");
+        const inputO = document.getElementById("playerO");
 
         let board = Array(9).fill("");
         let current = "X";
         let done = false;
         let winLine = [];
 
+        const CELL = 100, GAP = 8;
+        const getName = (p) => (p === "X" ? inputX.value.trim() : inputO.value.trim()) || (p === "X" ? "Jogador X" : "Jogador O");
+
         function setStatus(text, color = "inherit") {
             statusEl.textContent = text;
             statusEl.style.color = color;
         }
 
-        const WINS = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
+        const WINS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
         function checkWin() {
             for (const [a, b, c] of WINS) {
                 if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c];
@@ -165,7 +191,6 @@
             return [];
         }
 
-        const CELL = 100, GAP = 8;
         function drawWinLine(line) {
             document.querySelector(".winline")?.remove();
             if (!line.length) return;
@@ -192,10 +217,10 @@
             });
             drawWinLine(winLine);
             if (done) {
-                if (winLine.length) setStatus(`🎉 Vitória de ${board[winLine[0]]}!`);
+                if (winLine.length) setStatus(`🎉 Vitória de ${getName(board[winLine[0]])}!`);
                 else setStatus("🤝 Empate!");
             } else {
-                setStatus(`Vez de ${current}`);
+                setStatus(`Vez de ${getName(current)}`);
             }
         }
 
@@ -204,7 +229,7 @@
             const i = pos - 1;
             if (board[i]) {
                 setStatus("Posição ocupada.", "#b45309");
-                setTimeout(() => { if (!done) setStatus(`Vez de ${current}`) }, 800);
+                setTimeout(() => { if (!done) setStatus(`Vez de ${getName(current)}`) }, 800);
                 return;
             }
             board[i] = current;
@@ -225,6 +250,8 @@
 
         cells.forEach(btn => btn.addEventListener("click", () => play(Number(btn.dataset.pos))));
         resetBtn.addEventListener("click", reset);
+        inputX.addEventListener("input", render);
+        inputO.addEventListener("input", render);
 
         render();
     </script>
