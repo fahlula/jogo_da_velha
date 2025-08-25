@@ -346,16 +346,35 @@
             if (done) return winLine.length ? `Vitória de ${getName(board[winLine[0]])}!` : "Empate!";
             return `Agora é a vez de ${getName(current)}.`;
         }
-        function popup(url) { window.open(url, "_blank", "width=600,height=400"); }
 
-        // FIX: usar closest para captar o botão com data-net
+        // popup seguro
+        function popup(url) {
+            const w = window.open('', '_blank', 'noopener,noreferrer,width=600,height=400');
+            if (w) w.location = url;
+        }
+
+        // fallback para copiar link
+        async function copyLink(text, link) {
+            try {
+                await navigator.clipboard.writeText(`${text} ${link}`);
+                setStatus("Link copiado para a área de transferência! ✅", "#065f46");
+            } catch {
+                setStatus("Não foi possível copiar o link.", "#b91c1c");
+            }
+        }
+
         shareMenu.addEventListener("click", (e) => {
             const btn = e.target.closest("button[data-net]");
             if (!btn) return;
             const net = btn.dataset.net;
             const text = shareText(), link = location.href;
-            if (net === "native" && navigator.share) {
-                navigator.share({ title: "Jogo da Velha", text, url: link });
+
+            if (net === "native") {
+                if (navigator.share) {
+                    navigator.share({ title: "Jogo da Velha", text, url: link });
+                } else {
+                    copyLink(text, link);
+                }
             } else if (net === "whatsapp") {
                 popup("https://wa.me/?text=" + encodeURIComponent(text + " " + link));
             } else if (net === "twitter") {
