@@ -5,60 +5,103 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Jogo da Velha</title>
+
+    <!-- ===== Metatags para Social Sharing ===== -->
+    <meta name="description"
+        content="Jogue o clássico Jogo da Velha online, escolha os nomes dos jogadores e compartilhe a partida com amigos.">
+    <meta name="theme-color" content="#000000">
+    <link rel="canonical" href="https://SEU_DOMINIO.com/jogodavelha" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="JogoDaVelha">
+    <meta property="og:url" content="https://SEU_DOMINIO.com/jogodavelha">
+    <meta property="og:title" content="🎮 Jogo da Velha Online">
+    <meta property="og:description"
+        content="Desafie seus amigos no clássico Jogo da Velha! Compartilhe, jogue e comemore com confetes animados. ✨">
+    <meta property="og:image" content="https://SEU_DOMINIO.com/imagens/preview.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://SEU_DOMINIO.com/jogodavelha">
+    <meta name="twitter:title" content="🎮 Jogo da Velha Online">
+    <meta name="twitter:description"
+        content="Desafie seus amigos no clássico Jogo da Velha! Compartilhe, jogue e comemore com confetes animados. ✨">
+    <meta name="twitter:image" content="https://SEU_DOMINIO.com/imagens/preview.jpg">
+
+    <link rel="icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
     <style>
         :root {
             --footer-h: 56px;
+            --bg-url: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80");
+
+            /* Base (desktop preserva o visual) */
+            --cell: 100px;
+            --gap: 8px;
+            --h1: 36px;
+            --text: 16px;
         }
 
+        /* ===== Sem barra de rolagem e fundo cobrindo 100% ===== */
         html,
         body {
             height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            /* 🔒 sem scroll */
         }
 
         body {
             font-family: system-ui, Arial, sans-serif;
-            min-height: 100vh;
-            margin: 0;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
             gap: 16px;
             padding: 24px;
             padding-bottom: var(--footer-h);
-            background-image: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80");
-            background-size: cover;
+            /* reserva espaço pro footer fixo */
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* Fundo fixo que cobre o viewport inteiro */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: var(--bg-url);
             background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            z-index: -1;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        /* Safe-area iOS */
+        @supports (padding: max(0px)) {
+            body {
+                padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--footer-h));
+            }
         }
 
         h1 {
-            border: 3px solid #000;
-            border-radius: 8px;
-            padding: 10px;
-            background: rgba(255, 255, 255, .65);
             margin: 0;
-        }
-
-        #players {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        #players input {
-            padding: 10px 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 2px solid #000;
-            background: rgba(255, 255, 255, .95);
-            transition: box-shadow .2s;
-            min-width: 220px;
-        }
-
-        #players input.turn {
-            box-shadow: 0 0 0 3px #22c55e inset;
+            padding: 10px 14px;
+            border: 3px solid #000;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, .65);
+            font-size: var(--h1);
+            line-height: 1.1;
         }
 
         .game-box {
@@ -71,26 +114,60 @@
             flex-direction: column;
             align-items: center;
             gap: 14px;
+
+            /* garante que o miolo cabe no viewport sem scroll */
+            max-height: calc(100dvh - var(--footer-h) - 24px*2 - 70px);
+            /* 70px ~ título/respiração */
+            overflow: visible;
+        }
+
+        /* Inputs menores e controlados */
+        #players {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 760px;
+        }
+
+        #players input {
+            padding: 8px 10px;
+            font-size: 15px;
+            border-radius: 8px;
+            border: 2px solid #000;
+            background: rgba(255, 255, 255, .95);
+            transition: box-shadow .2s;
+            min-width: 180px;
+            width: clamp(180px, 28vw, 320px);
+            flex: 0 1 auto;
+        }
+
+        #players input.turn {
+            box-shadow: 0 0 0 3px #22c55e inset;
         }
 
         #status {
-            min-height: 24px;
+            min-height: 28px;
             font-weight: 600;
-            background: rgba(255, 255, 255, .85);
-            padding: 6px 10px;
+            background: rgba(255, 255, 255, .9);
+            padding: 8px 12px;
             border-radius: 8px;
+            font-size: var(--text);
         }
 
+        /* Tabuleiro */
         #board {
             display: grid;
-            grid-template-columns: repeat(3, 100px);
-            gap: 8px;
+            grid-template-columns: repeat(3, var(--cell));
+            gap: var(--gap);
             position: relative;
+            touch-action: manipulation;
         }
 
         .cell {
-            width: 100px;
-            height: 100px;
+            width: var(--cell);
+            height: var(--cell);
             font-size: 28px;
             font-weight: 700;
             background: #eee;
@@ -112,22 +189,23 @@
             color: #8B0000;
         }
 
+        /* Ações */
         #actions {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
         }
 
-        /* Botão único que troca de rótulo */
         #reset {
             background: #000;
             color: #fff;
             border: 2px solid #000;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 10px 18px;
+            font-size: var(--text);
             font-weight: 700;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             transition: .2s;
         }
@@ -143,18 +221,7 @@
         }
 
         #reset.again:hover {
-            filter: brightness(0.95);
-        }
-
-        .winline {
-            position: absolute;
-            height: 6px;
-            background: black;
-            border-radius: 6px;
-            left: 0;
-            top: 0;
-            transform-origin: center;
-            pointer-events: none;
+            filter: brightness(.95);
         }
 
         .share-wrapper {
@@ -165,9 +232,10 @@
             background: #fff;
             border: 2px solid #000;
             padding: 10px 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            font-size: var(--text);
         }
 
         .share-menu {
@@ -181,6 +249,7 @@
             flex-direction: column;
             min-width: 200px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+            z-index: 10;
         }
 
         .share-menu button {
@@ -199,6 +268,17 @@
             background: #f0f0f0;
         }
 
+        .winline {
+            position: absolute;
+            height: 6px;
+            background: black;
+            border-radius: 6px;
+            left: 0;
+            top: 0;
+            transform-origin: center;
+            pointer-events: none;
+        }
+
         footer {
             position: fixed;
             left: 0;
@@ -213,6 +293,7 @@
             border-top: 2px solid #000;
             font-size: 14px;
             font-weight: 600;
+            z-index: 1000;
         }
 
         .cell:focus-visible,
@@ -222,6 +303,64 @@
         #players input:focus-visible {
             outline: 3px solid #2563eb;
             outline-offset: 2px;
+        }
+
+        /* ===== Responsivo (apenas telas menores/baixa altura) ===== */
+        @media (max-width: 680px) {
+            :root {
+                --cell: clamp(80px, 24vw, 100px);
+                --gap: clamp(6px, 2.4vw, 8px);
+                --h1: clamp(22px, 5.5vw, 36px);
+                --text: clamp(14px, 3.2vw, 16px);
+            }
+
+            #players {
+                display: grid;
+                grid-template-columns: 1fr;
+                width: min(92vw, 560px);
+            }
+
+            .game-box {
+                width: min(92vw, 560px);
+                backdrop-filter: blur(3px);
+            }
+
+            .cell {
+                font-size: clamp(22px, 7vw, 28px);
+            }
+
+            #actions {
+                gap: 10px;
+            }
+
+            #actions>* {
+                flex: 1 1 45%;
+            }
+        }
+
+        @media (max-width: 420px) {
+            :root {
+                --cell: clamp(70px, 22vw, 92px);
+                --gap: 6px;
+            }
+
+            .game-box {
+                border-width: 2px;
+            }
+
+            .cell {
+                border-width: 2px;
+            }
+
+            h1 {
+                font-size: clamp(22px, 6vw, 32px);
+            }
+        }
+
+        @media (max-height: 640px) {
+            :root {
+                --cell: clamp(64px, 20vw, 88px);
+            }
         }
 
         /* Canvas dos confetes */
@@ -250,6 +389,7 @@
 
     <div class="game-box">
         <div id="status" aria-live="polite" aria-atomic="true">Preparando o jogo…</div>
+
         <div id="board" role="grid" aria-label="Tabuleiro">
             <button class="cell" role="gridcell" tabindex="0" aria-label="célula 1" data-pos="1"></button>
             <button class="cell" role="gridcell" tabindex="0" aria-label="célula 2" data-pos="2"></button>
@@ -295,8 +435,8 @@
         const inputO = document.getElementById("playerO");
         const cells = [...document.querySelectorAll(".cell")];
 
-        // Impede que cliques nos inputs "passeiem" para outros handlers
-        ;['click', 'mousedown', 'touchstart'].forEach(ev => {
+        // impedir propagação em inputs
+        ['click', 'mousedown', 'touchstart'].forEach(ev => {
             inputX.addEventListener(ev, e => e.stopPropagation());
             inputO.addEventListener(ev, e => e.stopPropagation());
         });
@@ -306,26 +446,51 @@
         let done = false;
         let winLine = [];
 
-        const CELL = 100, GAP = 8;
-        const getName = (p) => (p === "X" ? inputX.value.trim() : inputO.value.trim()) || (p === "X" ? "Jogador X" : "Jogador O");
+        // Métricas do tabuleiro (responsivo)
+        let CELL = 100, GAP = 8;
+        function computeCellMetrics() {
+            const firstCell = cells[0];
+            const cs = getComputedStyle(boardEl);
+            CELL = firstCell ? firstCell.offsetWidth : 100;
+            GAP = parseFloat(cs.gap) || 8;
+        }
+        computeCellMetrics();
+        addEventListener('resize', computeCellMetrics);
+
+        // Nomes — devolve nome digitado OU "Jogador X/O"
+        function getPlayerLabel(p) {
+            const raw = p === "X" ? inputX.value.trim() : inputO.value.trim();
+            return raw || `Jogador ${p}`;
+        }
 
         function setStatus(text, color = "inherit") { statusEl.textContent = text; statusEl.style.color = color; }
 
         const WINS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
-        function checkWin() { for (const [a, b, c] of WINS) { if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c]; } return []; }
+        function checkWin() {
+            for (const [a, b, c] of WINS) {
+                if (board[a] && board[a] === board[b] && board[b] === board[c]) return [a, b, c];
+            }
+            return [];
+        }
 
         function drawWinLine(line) {
             document.querySelector(".winline")?.remove();
             if (!line.length) return;
+
+            computeCellMetrics();
+
             const [a, c] = [line[0], line[2]];
             const r1 = Math.floor(a / 3), c1 = a % 3, r3 = Math.floor(c / 3), c3 = c % 3;
             const cx1 = c1 * (CELL + GAP) + CELL / 2, cy1 = r1 * (CELL + GAP) + CELL / 2;
             const cx3 = c3 * (CELL + GAP) + CELL / 2, cy3 = r3 * (CELL + GAP) + CELL / 2;
             const dx = cx3 - cx1, dy = cy3 - cy1, len = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
             const mx = (cx1 + cx3) / 2, my = (cy1 + cy3) / 2;
+
             const el = document.createElement("div");
             el.className = "winline";
-            el.style.width = `${len}px`; el.style.left = `${mx}px`; el.style.top = `${my}px`;
+            el.style.width = `${len}px`;
+            el.style.left = `${mx}px`;
+            el.style.top = `${my}px`;
             el.style.transform = `translate(-50%,-50%) rotate(${ang}rad)`;
             boardEl.appendChild(el);
         }
@@ -341,6 +506,7 @@
                 btn.setAttribute('aria-disabled', String(disabled));
                 btn.setAttribute('aria-label', `célula ${i + 1}${v ? `, ${v}` : ''}`);
             });
+
             inputX.classList.toggle('turn', current === 'X' && !done);
             inputO.classList.toggle('turn', current === 'O' && !done);
 
@@ -350,12 +516,14 @@
                 resetBtn.classList.add('again');
                 if (winLine.length) {
                     const winner = board[winLine[0]];
-                    setStatus(`🎉 Jogador ${getName(winner)} ganhou a partida!`);
-                } else setStatus("🤝 Empate!");
+                    setStatus(`🎉 ${getPlayerLabel(winner)} ganhou a partida!`);
+                } else {
+                    setStatus("🤝 Empate!");
+                }
             } else {
                 resetBtn.textContent = 'Reiniciar';
                 resetBtn.classList.remove('again');
-                setStatus(`Vez de ${getName(current)}`);
+                setStatus(`Vez de ${getPlayerLabel(current)}`);
             }
         }
 
@@ -364,7 +532,7 @@
             const i = pos - 1;
             if (board[i]) {
                 setStatus("Posição ocupada.", "#b45309");
-                setTimeout(() => { if (!done) setStatus(`Vez de ${getName(current)}`) }, 800);
+                setTimeout(() => { if (!done) setStatus(`Vez de ${getPlayerLabel(current)}`) }, 800);
                 return;
             }
             board[i] = current;
@@ -372,7 +540,7 @@
             if (winLine.length) {
                 done = true;
                 render();
-                startConfetti(); // 🎊 dispara confetes quando alguém ganha
+                startConfetti();
                 return;
             }
             if (board.every(v => v)) { done = true; render(); return; }
@@ -385,23 +553,20 @@
             board.fill(""); current = 'X'; done = false; winLine = [];
             stopConfetti();
             render();
-            // volta o foco pro primeiro campo pra facilitar digitar nomes
             inputX.focus({ preventScroll: true });
             inputX.select();
         }
 
-        // Delegação de clique: um listener só
         boardEl.addEventListener("click", (e) => {
             const btn = e.target.closest(".cell"); if (!btn || !boardEl.contains(btn)) return;
             play(Number(btn.dataset.pos));
         });
         resetBtn.addEventListener("click", reset);
 
-        // Atualiza nomes em tempo real
         inputX.addEventListener("input", render);
         inputO.addEventListener("input", render);
 
-        /* ======== Compartilhar ======== */
+        /* ===== Compartilhar ===== */
         const shareBtn = document.getElementById("share-main");
         const shareMenu = document.getElementById("share-menu");
 
@@ -414,6 +579,8 @@
 
         shareBtn.addEventListener("click", () => toggleShare(shareMenu.style.display !== "flex"));
         document.addEventListener("click", (e) => { if (!e.target.closest(".share-wrapper")) toggleShare(false); });
+
+        // BUG corrigido (aspas na query)
         shareMenu.addEventListener("keydown", (e) => {
             const items = [...shareMenu.querySelectorAll("button[role='menuitem']")];
             const i = items.indexOf(document.activeElement);
@@ -423,8 +590,8 @@
         });
 
         function shareText() {
-            if (done) return winLine.length ? `Jogador ${getName(board[winLine[0]])} ganhou a partida!` : "Empate!";
-            return `Agora é a vez de ${getName(current)}.`;
+            if (done) return winLine.length ? `${getPlayerLabel(board[winLine[0]])} ganhou a partida!` : "Empate!";
+            return `Agora é a vez de ${getPlayerLabel(current)}.`;
         }
 
         function openShare(url) {
@@ -453,13 +620,13 @@
             toggleShare(false);
         });
 
-        /* ======== Inicialização ======== */
+        /* ===== Inicialização ===== */
         try { localStorage.removeItem('jvelha:names'); } catch { }
         inputX.value = ""; inputO.value = "";
         inputX.focus({ preventScroll: true });
         render();
 
-        /* ======== Confetes (Canvas) ======== */
+        /* ===== Confetes (Canvas) ===== */
         const confettiCanvas = document.getElementById('confetti');
         const ctx = confettiCanvas.getContext('2d');
         let particles = []; let rafId = null; let confettiRunning = false; let confettiUntil = 0;
@@ -489,7 +656,7 @@
         function draw() {
             ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
             for (const p of particles) {
-                p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vy += 0.02; // gravidade leve
+                p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vy += 0.02;
                 ctx.save();
                 ctx.translate(p.x, p.y); ctx.rotate(p.rot);
                 ctx.fillStyle = p.color;
