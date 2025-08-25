@@ -51,6 +51,11 @@
             border-radius: 6px;
             border: 2px solid #000;
             background: rgba(255, 255, 255, .9);
+            transition: box-shadow .2s;
+        }
+
+        #players input.turn {
+            box-shadow: 0 0 0 3px #22c55e inset;
         }
 
         .game-box {
@@ -281,6 +286,18 @@
             boardEl.appendChild(el);
         }
 
+        const LS_KEY = 'jvelha:names';
+        function loadNames() {
+            try {
+                const n = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+                if (n.x) inputX.value = n.x;
+                if (n.o) inputO.value = n.o;
+            } catch { }
+        }
+        function saveNames() {
+            localStorage.setItem(LS_KEY, JSON.stringify({ x: inputX.value, o: inputO.value }));
+        }
+
         function render() {
             cells.forEach((btn, i) => {
                 const v = board[i];
@@ -290,6 +307,10 @@
                 btn.disabled = done || !!v;
                 btn.setAttribute('aria-label', `célula ${i + 1}${v ? `, ${v}` : ''}`);
             });
+            // destaque de turno
+            inputX.classList.toggle('turn', current === "X" && !done);
+            inputO.classList.toggle('turn', current === "O" && !done);
+
             drawWinLine(winLine);
             if (done) {
                 if (winLine.length) setStatus(`🎉 Vitória de ${getName(board[winLine[0]])}!`);
@@ -317,10 +338,11 @@
 
         cells.forEach(btn => btn.addEventListener("click", () => play(Number(btn.dataset.pos))));
         resetBtn.addEventListener("click", reset);
-        inputX.addEventListener("input", render);
-        inputO.addEventListener("input", render);
+        inputX.addEventListener("input", () => { saveNames(); render(); });
+        inputO.addEventListener("input", () => { saveNames(); render(); });
 
         // Navegação por teclado
+        loadNames();
         cells[0].focus();
         boardEl.addEventListener('keydown', (e) => {
             const idx = cells.indexOf(document.activeElement);
@@ -347,13 +369,11 @@
             return `Agora é a vez de ${getName(current)}.`;
         }
 
-        // popup seguro
         function popup(url) {
             const w = window.open('', '_blank', 'noopener,noreferrer,width=600,height=400');
             if (w) w.location = url;
         }
 
-        // fallback para copiar link
         async function copyLink(text, link) {
             try {
                 await navigator.clipboard.writeText(`${text} ${link}`);
